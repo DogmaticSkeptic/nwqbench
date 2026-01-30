@@ -1,50 +1,52 @@
-import numpy as np
-from qiskit import BasicAer
-from qiskit.visualization import plot_histogram
-from qiskit.aqua import QuantumInstance
-from qiskit.aqua.algorithms import Grover
-from qiskit.aqua.components.oracles import LogicalExpressionOracle, TruthTableOracle
-import matplotlib.pyplot as plt
-import qiskit
 import sys
 import os
 import numpy as np
+import math
+from qiskit import QuantumCircuit
 
-#k = int(sys.argv[1])
-k=3
+if len(sys.argv) < 2:
+    print("Usage: python grover_search.py <num_qubits>")
+    sys.exit(1)
+k = int(sys.argv[1])
 
-def random_bool():
-    z = np.random.randint(0,2)
-    if z == 0:
-        z = -1
-    return z
+if k < 1:
+    print("Number of qubits should be positive.")
+    sys.exit(1)
 
-def sat_line(n_qubits):
-    text = ''
-    for i in range(n_qubits):
-        text+= f"{(i+1)*random_bool()} "
-    text+= "0"
-    return text
+qc = QuantumCircuit(k, k)
 
-def input_3sat_generation(n_qubits):
-    input_3sat = f'''
-    c example DIMACS-CNF 3-SAT
-    p cnf {n_qubits} 1
-    {sat_line(n_qubits)}
-    '''
-    return input_3sat
+# Prepare uniform superposition
+qc.h(range(k))
 
-input_3sat = input_3sat_generation(k)
+def phase_oracle_mark_all_ones(circuit):
+    if k == 1:
+        circuit.z(0)
+        return
+    circuit.h(k - 1)
+    circuit.mcx(list(range(k - 1)), k - 1, mode="noancilla")
+    circuit.h(k - 1)
 
-oracle = LogicalExpressionOracle(input_3sat)
-grover = Grover(oracle)
-backend = BasicAer.get_backend('qasm_simulator')
-quantum_instance = QuantumInstance(backend, shots=1024)
-new_circuit = grover.construct_circuit()
-cbits = qiskit.ClassicalRegister(k)
-new_circuit.add_register(cbits)
-for i in range(3):
-    new_circuit.measure(new_circuit.qubits[i],cbits[i])
+def diffuser(circuit):
+    circuit.h(range(k))
+    circuit.x(range(k))
+    if k == 1:
+        circuit.z(0)
+    else:
+        circuit.h(k - 1)
+        circuit.mcx(list(range(k - 1)), k - 1, mode="noancilla")
+        circuit.h(k - 1)
+    circuit.x(range(k))
+    circuit.h(range(k))
+
+# Number of Grover iterations for 1 marked state
+iters = max(1, int(round(math.pi / 4 * math.sqrt(2 ** k))))
+for _ in range(iters):
+    phase_oracle_mark_all_ones(qc)
+    diffuser(qc)
+
+qc.measure(range(k), range(k))
+
+new_circuit = qc
 while True:
     old_circuit = new_circuit
     new_circuit = new_circuit.decompose()
@@ -54,9 +56,8 @@ while True:
 
 if not os.path.isdir("qasm"):
     os.mkdir("qasm")
-qasm_file = open(f"qasm/grover_search_n{new_circuit.num_qubits}","w")
-qasm_file.write(new_circuit.qasm())
-qasm_file.close()
+with open(f"qasm/grover_search_n{k}", "w") as qasm_file:
+    qasm_file.write(new_circuit.qasm())
 
 # qasm_sim = qiskit.Aer.get_backend('aer_simulator')
 # qobj = qiskit.compiler.assemble(new_circuit, backend=qasm_sim,shots=1024)
