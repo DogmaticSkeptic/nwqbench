@@ -116,10 +116,9 @@ run_bench() {
 
 CHECK_FAILED=0
 
-for n in 4 5 6; do
+for n in 4 5 6 7; do
   run_bench "bv" "${NWQBENCH_DIR}/NWQ_Bench/bv/bv.py" "${n}" "${NWQBENCH_DIR}/NWQ_Bench/bv" "bv_n${n}.qasm" "${n}"
   run_bench "ising" "${NWQBENCH_DIR}/NWQ_Bench/ising/ising.py" "${n}" "${NWQBENCH_DIR}/NWQ_Bench/ising" "ising_n${n}" "${n}"
-  run_bench "qft" "${NWQBENCH_DIR}/NWQ_Bench/qft/qft.py" "${n}" "${NWQBENCH_DIR}/NWQ_Bench/qft" "qft_n${n}" "${n}"
   run_bench "vqe" "${NWQBENCH_DIR}/NWQ_Bench/vqe/vqe.py" "${n}" "${NWQBENCH_DIR}/NWQ_Bench/vqe" "vqe_n${n}" "${n}"
 done
 

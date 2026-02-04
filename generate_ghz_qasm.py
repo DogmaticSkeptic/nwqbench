@@ -22,7 +22,7 @@ def build_ghz_qasm(n: int) -> str:
 def main() -> None:
     out_dir = Path(__file__).resolve().parent / "nwq-control_bench_ghz"
     out_dir.mkdir(parents=True, exist_ok=True)
-    for n in (4, 5, 6):
+    for n in (4, 5, 6, 7):
         qasm = build_ghz_qasm(n)
         out_path = out_dir / f"ghz_n{n}.qasm"
         out_path.write_text(qasm)
